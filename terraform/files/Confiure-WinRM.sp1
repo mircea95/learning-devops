@@ -1,0 +1,21 @@
+# Set execution policy
+Set-ExecutionPolicy Unrestricted -Force
+
+# Configure WinRM
+winrm quickconfig -q
+winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+winrm set winrm/config/service/auth '@{Basic="true"}'
+winrm set winrm/config/client/auth '@{Basic="true"}'
+winrm set winrm/config/service/auth '@{CredSSP="true"}'
+
+# Make sure WinRM service is running and set to auto-start
+Set-Service -Name WinRM -StartupType Automatic
+Restart-Service -Name WinRM
+
+# Configure firewall for WinRM
+New-NetFirewallRule -Name "WinRM-HTTP" -DisplayName "WinRM HTTP" -Enabled True -Profile Any -Action Allow -Direction Inbound -LocalPort 5985 -Protocol TCP
+New-NetFirewallRule -Name "WinRM-HTTPS" -DisplayName "WinRM HTTPS" -Enabled True -Profile Any -Action Allow -Direction Inbound -LocalPort 5986 -Protocol TCP
+
+Write-Host "WinRM has been configured for Ansible management."
+Write-Host "HTTP Port: 5985"
+Write-Host "HTTPS Port: 5986"

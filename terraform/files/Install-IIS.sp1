@@ -1,0 +1,8 @@
+# Install IIS
+Install-WindowsFeature -Name Web-Server -IncludeManagementTools
+
+# Enable needed IIS features for .NET applications
+Install-WindowsFeature -Name Web-Asp-Net45, Web-Net-Ext45, Web-ISAPI-Ext, Web-ISAPI-Filter
+
+# Restart IIS
+iisreset /restart

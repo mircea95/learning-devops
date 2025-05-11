@@ -1,0 +1,8 @@
+- name: Install and Configure Windows Prometheus Exporter
+  hosts: windows_servers
+  gather_facts: yes
+
+  roles:
+    - role: WindowsExporter
+      vars:
+        windows_exporter_version: "0.30.6"

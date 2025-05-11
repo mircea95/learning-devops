@@ -1,0 +1,16 @@
+---
+# Website deployment configuration
+deployment_path: "C:\\inetpub\\wwwroot\\simple-iis-website"
+repository_url: "https://github.com/AzureWorkshops/samples-simple-iis-website.git"
+
+# IIS configuration
+app_pool_name: "SimpleIISWebsiteAppPool"
+website_name: "SimpleIISWebsite"
+website_port: 80
+stop_default_site: true
+
+# .NET runtime version
+managed_runtime_version: "v4.0"
+
+# Temporary script paths
+temp_script_dir: "C:\\Temp\\ansible"

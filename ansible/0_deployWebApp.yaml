@@ -1,0 +1,20 @@
+- name: Deploy IIS Website
+  hosts: windows_servers
+  gather_facts: yes
+
+  roles:
+    - role: IISWebsite
+      vars:
+        deployment_path: "C:\\inetpub\\wwwroot\\simple-iis-website"
+        repository_url: "https://github.com/AzureWorkshops/samples-simple-iis-website.git"
+        app_pool_name: "SimpleIISWebsiteAppPool"
+        website_name: "SimpleIISWebsite"
+        website_port: 80
+# we can deploy any .NET application in the future.
+#    - role: IISWebsite
+#      vars:
+#        deployment_path: "C:\\inetpub\\wwwroot\\simple-iis-website2"
+#        repository_url: "https://github.com/AzureWorkshops/samples-simple-iis-website.git"
+#        app_pool_name: "SimpleIISWebsiteAppPool2"
+#        website_name: "SimpleIISWebsite2"
+#        website_port: 8080

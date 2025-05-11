@@ -1,0 +1,25 @@
+$taskName = "SendPrometheusDataTask"
+$scriptPath = "C:\Scripts\Send-PrometheusData.ps1"
+
+# Ensure script exists
+if (-Not (Test-Path $scriptPath)) {
+    Write-Error "Script not found at $scriptPath"
+    exit
+}
+
+# Define action
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File `"$scriptPath`""
+
+# Define trigger: at startup and every 5 minutes
+$trigger1 = New-ScheduledTaskTrigger -AtStartup
+$trigger2 = New-ScheduledTaskTrigger -Once -At (Get-Date).Date.AddMinutes(1) `
+    -RepetitionInterval (New-TimeSpan -Minutes 5) `
+    -RepetitionDuration (New-TimeSpan -Days 1)
+
+# Define principal
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -RunLevel Highest
+
+# Register the task
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger1, $trigger2 -Principal $principal -Force
+
+Write-Host "Scheduled task '$taskName' created successfully."

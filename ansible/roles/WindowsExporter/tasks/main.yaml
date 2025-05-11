@@ -1,0 +1,57 @@
+---
+- name: Create download directory
+  win_file:
+    path: C:\Temp
+    state: directory
+
+- name: Download Windows Exporter MSI
+  win_get_url:
+    url: "{{ windows_exporter_download_url }}"
+    dest: "C:\\Temp\\windows_exporter-{{ windows_exporter_version }}.msi"
+    force: no
+
+- name: Check if Windows Exporter service exists
+  win_service:
+    name: windows_exporter
+  register: service_status
+  ignore_errors: yes
+
+- name: Uninstall previous version if exists
+  win_package:
+    path: "C:\\Temp\\windows_exporter-{{ windows_exporter_version }}.msi"
+    state: absent
+  when: service_status.exists
+
+- name: Install Windows Exporter with custom port and collectors
+  win_package:
+    path: "C:\\Temp\\windows_exporter-{{ windows_exporter_version }}.msi"
+    arguments: "LISTEN_PORT={{ listen_port }} ENABLED_COLLECTORS={{ collectors | join(',') }}"
+    state: present
+
+- name: Ensure Windows Exporter service is running
+  win_service:
+    name: windows_exporter
+    start_mode: auto
+    state: started
+
+- name: Create firewall rule for Windows Exporter
+  win_firewall_rule:
+    name: Windows Exporter ({{ listen_port }})
+    localport: "{{ listen_port }}"
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: yes
+
+- name: Verify Windows Exporter endpoint is accessible
+  win_uri:
+    url: http://localhost:{{ listen_port }}/metrics
+    method: GET
+    status_code: 200
+  register: metrics_check
+  ignore_errors: yes
+
+- name: Report Windows Exporter status
+  debug:
+    msg: "Windows Exporter is {{ 'running and accessible' if metrics_check.status_code == 200 else 'not accessible' }} at http://localhost:{{ listen_port }}/metrics"

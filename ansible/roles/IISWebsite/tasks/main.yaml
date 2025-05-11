@@ -1,0 +1,53 @@
+---
+# Create temporary directory for scripts
+- name: Ensure temporary script directory exists
+  win_file:
+    path: "{{ temp_script_dir }}"
+    state: directory
+
+# Copy and execute website deployment script
+- name: Copy website deployment script
+  win_template:
+    src: templates/deploy_website.ps1.j2
+    dest: "{{ temp_script_dir }}\\deploy_website.ps1"
+
+- name: Execute website deployment script
+  win_shell: "powershell.exe -ExecutionPolicy Bypass -File {{ temp_script_dir }}\\deploy_website.ps1"
+  register: website_deployment
+
+# Verify deployment
+- name: Wait for website to become available
+  win_wait_for:
+    port: "{{ website_port }}"
+    timeout: 30
+  register: website_check
+  failed_when: false
+
+- name: Check website status
+  win_uri:
+    url: "http://localhost:{{ website_port }}"
+    method: GET
+    return_content: yes
+  register: website_content
+  failed_when: false
+  when: website_check is succeeded
+
+- name: Display website status
+  debug:
+    msg: "Website deployment successful! Status code: {{ website_content.status_code }}"
+  when: website_content.status_code is defined and website_content.status_code == 200
+
+- name: Display website deployment warning
+  debug:
+    msg: "Website may not be properly configured. Please check IIS logs for more information."
+  when: website_content.status_code is not defined or website_content.status_code != 200
+
+# Cleanup temporary files
+- name: Clean up temporary scripts
+  win_file:
+    path: "{{ temp_script_dir }}\\{{ item }}"
+    state: absent
+  with_items:
+    - setup_iis.ps1
+    - deploy_website.ps1
+  when: website_deployment is succeeded

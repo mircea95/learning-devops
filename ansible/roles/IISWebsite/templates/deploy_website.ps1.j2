@@ -1,0 +1,55 @@
+  # Create deployment directory if it doesn't exist
+  $deploymentPath = "{{ deployment_path }}"
+  if (-not (Test-Path $deploymentPath)) {
+      New-Item -Path $deploymentPath -ItemType Directory -Force
+  }
+
+  # Add git to PATH
+  $env:Path += ";C:\Program Files\Git\bin"
+
+  # Clone the repository if it doesn't exist
+  if (-not (Test-Path "$deploymentPath\index.html")) {
+      git clone "{{ repository_url }}" $deploymentPath
+  }
+
+  # Import the WebAdministration module
+  Import-Module WebAdministration -ErrorAction SilentlyContinue
+
+  # Stop the default website if configured
+  {% if stop_default_site %}
+  if (Get-Website -Name "Default Web Site" -ErrorAction SilentlyContinue) {
+      Stop-Website -Name "Default Web Site"
+  }
+  {% endif %}
+
+  # Create application pool
+  $appPoolName = "{{ app_pool_name }}"
+  if (-not (Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue)) {
+      New-WebAppPool -Name $appPoolName
+  }
+
+  # Set application pool properties
+  Set-ItemProperty -Path "IIS:\AppPools\$appPoolName" -Name "managedRuntimeVersion" -Value "{{ managed_runtime_version }}"
+
+  # Create or update website
+  $siteName = "{{ website_name }}"
+  $port = {{ website_port }}
+
+  if (Get-Website -Name $siteName -ErrorAction SilentlyContinue) {
+      Set-ItemProperty -Path "IIS:\Sites\$siteName" -Name "physicalPath" -Value $deploymentPath
+      Set-ItemProperty -Path "IIS:\Sites\$siteName" -Name "applicationPool" -Value $appPoolName
+  } else {
+      New-Website -Name $siteName -PhysicalPath $deploymentPath -ApplicationPool $appPoolName -Port $port -Force
+  }
+
+  # Start the website
+  Start-Website -Name $siteName
+
+  # Set appropriate permissions
+  $acl = Get-Acl $deploymentPath
+  $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("IIS_IUSRS", "ReadAndExecute", "ContainerInherit,ObjectInherit", "None", "Allow")
+  $acl.SetAccessRule($accessRule)
+  Set-Acl -Path $deploymentPath -AclObject $acl
+
+  # Restart IIS service for changes to take effect
+  Restart-Service W3SVC
